@@ -119,3 +119,5 @@ a { color: #5143bd; font-weight: 650; }
  .management .detail-heading { align-items: start; flex-direction: column; gap: 12px; }
  .management .connection-panel { align-items: start; } .management .record-details > div { flex-direction: column; gap: 8px; } .management .record-details dd { text-align: left; }
 }
+.management .record-thumb{display:block;width:96px;height:64px;object-fit:cover;border-radius:7px}
+.management .record-photo{display:block;width:100%;max-width:850px;height:auto;max-height:440px;object-fit:cover;border-radius:12px;margin-top:25px}

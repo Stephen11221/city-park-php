@@ -15,6 +15,9 @@ function validateFields(array $fields, bool $editing): array
             continue;
         }
         switch ($field['type']) {
+            case 'image':
+                if (!localPhoto($value)) { $errors[] = 'Choose an existing image in assets/images (JPG, PNG, or WebP).'; }
+                break;
             case 'select':
                 if (!in_array($value, $field['options'], true)) { $errors[] = 'Select a valid ' . strtolower($field['label']) . '.'; }
                 break;

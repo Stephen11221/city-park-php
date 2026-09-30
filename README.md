@@ -56,3 +56,18 @@ Booking prices are a flat facility price per booking. Capacity zero means no boo
 An active administrator account, `steven@mail.com`, has been created in this local database with the password supplied during setup. The setup script does not reset accounts or embed this password. Sign in at `/login.php`; change the password through the Users edit form if needed.
 
 Validation performed against the local database: all seven admin pages, creation of all six editable record types, editing and deletion, audit logging, invalid booking rules, CSRF checks, role restrictions, and customer ownership/price checks. Temporary test records were removed. Browser visual checks have not been performed.
+
+## Demo data and real photographs
+
+```sh
+php scripts/setup-database.php
+php scripts/seed-demo-data.php
+```
+
+The demo seed adds 3 parks, 6 facilities, 4 fictional users, 6 linked bookings and test payments, 3 maintenance reports, and 6 seed activity logs. Stable, unique `demo_key` values make reruns leave existing sample records unchanged. Existing records and the administrator account are preserved. Demo users receive random hashed passwords; no shared demo login is enabled.
+
+The migration adds nullable `image_path` columns for parks/facilities and nullable unique `demo_key` identifiers. Existing installations are upgraded by setup or the seed command. The schema file includes these columns for fresh installations.
+
+Photos are actual downloaded stock images stored in `assets/images/`, with sources in [photo credits](assets/images/CREDITS.md). They represent fictional demo places. The landing hero, park/facility cards, table thumbnails, and record details display local images. Update a park or facility's Photo path field to choose an existing JPG, PNG, or WebP file in that directory.
+
+Sample payments do not represent money collected. Demo bookings use dates relative to the first seed run and are not shifted on reruns.

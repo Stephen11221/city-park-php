@@ -14,6 +14,7 @@ function entities(): array
     return [
         'parks' => ['title' => 'Parks', 'singular' => 'park', 'description' => 'Manage park locations, opening hours, and availability.', 'columns' => ['park_name', 'location', 'opening_time', 'closing_time', 'status'], 'fields' => [
             'park_name' => $field('Park name', 'text', true, ['max' => 150]),
+            'image_path' => $field('Photo path', 'image', false, ['max' => 255]),
             'location' => $field('Location', 'text', true, ['max' => 255]),
             'description' => $field('Description', 'textarea', false),
             'opening_time' => $field('Opening time', 'time', false),
@@ -23,6 +24,7 @@ function entities(): array
         'facilities' => ['title' => 'Facilities', 'singular' => 'facility', 'description' => 'Spaces and amenities available within each park.', 'columns' => ['facility_name', 'park_id', 'capacity', 'price', 'status'], 'fields' => [
             'park_id' => $ref('Park', 'parks', 'park_name'),
             'facility_name' => $field('Facility name', 'text', true, ['max' => 150]),
+            'image_path' => $field('Photo path', 'image', false, ['max' => 255]),
             'description' => $field('Description', 'textarea', false),
             'capacity' => $field('Capacity', 'integer', true, ['min' => 0, 'default' => '0']),
             'price' => $field('Price per booking', 'money', true, ['default' => '0.00']),

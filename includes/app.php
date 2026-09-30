@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once dirname(__DIR__) . '/auth.php';
 require_once __DIR__ . '/entities.php';
+require_once __DIR__ . '/images.php';
 
 function query(string $sql, array $params = []): PDOStatement
 {
