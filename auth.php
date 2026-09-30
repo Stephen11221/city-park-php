@@ -44,6 +44,7 @@ function signIn(array $user): void
 {
     session_regenerate_id(true);
     $_SESSION = [
+        'booking_intent' => $_SESSION['booking_intent'] ?? null,
         'user_id' => (int) $user['id'],
         'csrf' => bin2hex(random_bytes(32)),
     ];
@@ -85,4 +86,15 @@ function recordAuthenticationActivity(?int $userId, string $action): void
     } catch (Throwable $exception) {
         error_log('City Park: unable to record authentication activity.');
     }
+}
+
+function afterLoginDestination(): string
+{
+    $intent = $_SESSION['booking_intent'] ?? null;
+    unset($_SESSION['booking_intent']);
+    if (is_array($intent) && $intent) {
+        $intent = array_intersect_key($intent, array_flip(['facility_id', 'booking_date', 'start_time', 'end_time', 'number_of_people']));
+        return 'bookings.php?' . http_build_query(array_merge(['action' => 'create'], $intent));
+    }
+    return 'dashboard.php';
 }

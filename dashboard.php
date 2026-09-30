@@ -10,7 +10,8 @@ try {
     foreach ($definitions as $entity => $definition) {
         if (!canView($entity, $user)) { continue; }
         [$scope, $params] = scopeFor($entity, $user);
-        $counts[$entity] = (int) query("SELECT COUNT(*) FROM `{$entity}` t WHERE {$scope}", $params)->fetchColumn();
+        $table = $definition['table'] ?? $entity;
+        $counts[$entity] = (int) query("SELECT COUNT(*) FROM `{$table}` t WHERE {$scope}", $params)->fetchColumn();
     }
     [$scope, $params] = scopeFor('bookings', $user);
     $recent = query("SELECT t.id, t.booking_date, t.start_time, t.status, f.facility_name, u.full_name FROM bookings t JOIN facilities f ON f.id = t.facility_id JOIN users u ON u.id = t.user_id WHERE {$scope} ORDER BY t.id DESC LIMIT 5", $params)->fetchAll();

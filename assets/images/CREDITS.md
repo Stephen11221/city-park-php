@@ -9,3 +9,9 @@ Real photographs downloaded from Pexels for this demonstration. Park/facility na
 - `basketball-court.jpg`: [Asphalt Basketball Field](https://www.pexels.com/photo/asphalt-basketball-field-5263266/)
 
 Source images are stored locally so rendering does not rely on an external image server. See the [Pexels license](https://www.pexels.com/license/) for source terms.
+
+## Food menu photographs
+
+- `grilled-chicken.jpg`: [Healthy Plate with Vegetables and Grilled Chicken](https://www.pexels.com/photo/healthy-plate-with-vegetables-and-grilled-chicken-29269622/)
+- `orange-juice.jpg`: [Glasses of Fresh Orange Juice](https://www.pexels.com/photo/glasses-of-fresh-orange-juice-6529792/)
+- `chocolate-cake.jpg`: [Chocolate Cake on a Plate](https://www.pexels.com/photo/chocolate-cake-on-a-plate-25409664/)

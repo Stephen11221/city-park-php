@@ -26,7 +26,9 @@ try {
     }
     require_once __DIR__ . '/migrate-demo-data.php';
     migrateDemoData();
-    echo "Database and all seven city park tables are ready.\n";
+    require_once __DIR__ . '/migrate-dining.php';
+    migrateDining();
+    echo "City park database and tables are ready.\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, "Setup failed. Check database configuration and CREATE privileges.\n");
     exit(1);

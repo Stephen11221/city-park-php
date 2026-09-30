@@ -20,6 +20,13 @@ function requireUser(): array
         exit('Account services are unavailable. Please try again later.');
     }
     if (!$user) {
+        if (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'bookings.php' && ($_GET['action'] ?? '') === 'create') {
+            $intent = [];
+            foreach (['facility_id', 'booking_date', 'start_time', 'end_time', 'number_of_people'] as $key) {
+                if (is_string($_GET[$key] ?? null)) { $intent[$key] = substr($_GET[$key], 0, 30); }
+            }
+            $_SESSION['booking_intent'] = $intent;
+        }
         redirectTo('login.php');
     }
     return $user;
@@ -27,7 +34,7 @@ function requireUser(): array
 
 function canView(string $entity, array $user): bool
 {
-    if ($entity === 'users' || $entity === 'activity_logs') {
+    if ($entity === 'users' || $entity === 'staff' || $entity === 'activity_logs') {
         return $user['role'] === 'admin';
     }
     if ($entity === 'maintenance') {
@@ -39,7 +46,7 @@ function canView(string $entity, array $user): bool
 function canManage(string $entity, array $user): bool
 {
     return $entity !== 'activity_logs' && ($user['role'] === 'admin'
-        || ($user['role'] === 'staff' && in_array($entity, ['parks', 'facilities', 'bookings', 'payments', 'maintenance'], true)));
+        || ($user['role'] === 'staff' && in_array($entity, ['parks', 'facilities', 'bookings', 'payments', 'maintenance', 'menu_items', 'dining_tables'], true)));
 }
 
 function canCreate(string $entity, array $user): bool
@@ -49,6 +56,8 @@ function canCreate(string $entity, array $user): bool
 
 function scopeFor(string $entity, array $user): array
 {
+    if ($entity === 'staff') { return ["t.role = 'staff'", []]; }
+    if ($entity === 'dining_tables') { return ["t.kind = 'table'", []]; }
     if ($user['role'] === 'customer' && $entity === 'bookings') {
         return ['t.user_id = ?', [$user['id']]];
     }
@@ -106,7 +115,7 @@ function entitySelect(string $entity, array $definition): array
         $joins .= " LEFT JOIN `{$field['table']}` {$alias} ON {$alias}.id = t.`{$key}`";
     }
     // Never load password hashes for the list or detail views.
-    if ($entity === 'users') {
+    if ($entity === 'users' || $entity === 'staff') {
         $select = 't.id, t.full_name, t.email, t.phone, t.role, t.status, t.created_at, t.updated_at';
     }
     return [$select, $joins];

@@ -6,6 +6,7 @@ if (!isset($entity) || !isset(entities()[$entity])) { http_response_code(404); e
 $user = requireUser();
 if (!canView($entity, $user)) { abortPage(403, 'You do not have access to this page.', $user); }
 $definition = entities()[$entity];
+$table = $definition['table'] ?? $entity;
 $action = is_string($_GET['action'] ?? null) ? $_GET['action'] : 'list';
 $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 0;
 $allowed = ['list', 'view', 'create', 'edit', 'delete', 'cancel'];
@@ -25,7 +26,7 @@ if ($entity === 'bookings' && $user['role'] === 'customer') {
 }
 try {
     if (in_array($action, ['view', 'edit', 'delete', 'cancel'], true)) {
-        $record = query("SELECT {$select} FROM `{$entity}` t {$joins} WHERE t.id = ? AND {$scope}", array_merge([$id], $scopeParams))->fetch();
+        $record = query("SELECT {$select} FROM `{$table}` t {$joins} WHERE t.id = ? AND {$scope}", array_merge([$id], $scopeParams))->fetch();
         if (!$record) { abortPage(404, 'Record not found.', $user); }
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -34,9 +35,9 @@ try {
         $db = database();
         $db->beginTransaction();
         if ($action === 'delete') {
-            query("SELECT id FROM `{$entity}` WHERE id = ? FOR UPDATE", [$id]);
-            assertDeletable($entity, $id, $user);
-            query("DELETE FROM `{$entity}` WHERE id = ?", [$id]);
+            query("SELECT id FROM `{$table}` WHERE id = ? FOR UPDATE", [$id]);
+            assertDeletable($table, $id, $user);
+            query("DELETE FROM `{$table}` WHERE id = ?", [$id]);
             recordActivity((int) $user['id'], 'Deleted ' . $definition['singular'] . ' #' . $id);
         } elseif ($action === 'cancel') {
             $changed = query("UPDATE bookings SET status = 'cancelled' WHERE id = ? AND user_id = ? AND status IN ('pending', 'approved')", [$id, $user['id']])->rowCount();
@@ -44,17 +45,18 @@ try {
             recordActivity((int) $user['id'], 'Cancelled booking #' . $id);
         } else {
             [$values, $errors] = validateFields($fields, $action === 'edit');
-            if (!$errors) { $errors = validateRecord($entity, $values, $id, $user); }
+            $values = array_merge($values, $definition['fixed'] ?? []);
+            if (!$errors) { $errors = validateRecord($table, $values, $id, $user); }
             if (!$errors) {
                 $keys = array_keys($values);
                 if ($action === 'create') {
                     $columns = '`' . implode('`, `', $keys) . '`';
                     $placeholders = implode(', ', array_fill(0, count($keys), '?'));
-                    query("INSERT INTO `{$entity}` ({$columns}) VALUES ({$placeholders})", array_values($values));
+                    query("INSERT INTO `{$table}` ({$columns}) VALUES ({$placeholders})", array_values($values));
                     $id = (int) $db->lastInsertId();
                 } else {
                     $assignments = implode(', ', array_map(static function ($key) { return '`' . $key . '` = ?'; }, $keys));
-                    query("UPDATE `{$entity}` SET {$assignments} WHERE id = ?", array_merge(array_values($values), [$id]));
+                    query("UPDATE `{$table}` SET {$assignments} WHERE id = ?", array_merge(array_values($values), [$id]));
                 }
                 recordActivity((int) $user['id'], ($action === 'create' ? 'Created ' : 'Updated ') . $definition['singular'] . ' #' . $id);
             }
@@ -111,11 +113,11 @@ if ($action === 'list') {
     if ($filter !== '' && $statusField !== null && in_array($filter, $fields[$statusField]['options'], true)) {
         $where .= " AND t.`{$statusField}` = ?"; $params[] = $filter;
     }
-    $total = (int) query("SELECT COUNT(*) FROM `{$entity}` t {$joins} WHERE {$where}", $params)->fetchColumn();
+    $total = (int) query("SELECT COUNT(*) FROM `{$table}` t {$joins} WHERE {$where}", $params)->fetchColumn();
     $pages = max(1, (int) ceil($total / 20));
     $page = min($pages, max(1, (int) (is_scalar($_GET['page'] ?? null) ? $_GET['page'] : 1)));
     $offset = ($page - 1) * 20;
-    $rows = query("SELECT {$select} FROM `{$entity}` t {$joins} WHERE {$where} ORDER BY t.id DESC LIMIT 20 OFFSET {$offset}", $params)->fetchAll();
+    $rows = query("SELECT {$select} FROM `{$table}` t {$joins} WHERE {$where} ORDER BY t.id DESC LIMIT 20 OFFSET {$offset}", $params)->fetchAll();
     ?>
 <section class="records"><form class="filters" method="get"><div><label for="q">Search <?= escape(strtolower($definition['title'])) ?></label><input id="q" name="q" value="<?= escape($q) ?>" placeholder="Search by name, details, or ID"></div>
 <?php if ($statusField): ?><div><label for="status">Status</label><select id="status" name="status"><option value="">All statuses</option><?php foreach ($fields[$statusField]['options'] as $option): ?><option value="<?= escape($option) ?>" <?= $filter === $option ? 'selected' : '' ?>><?= escape(readable($option)) ?></option><?php endforeach; ?></select></div><?php endif; ?>
@@ -123,7 +125,7 @@ if ($action === 'list') {
 <div class="table-meta"><?= $total ?> <?= $total === 1 ? 'record' : 'records' ?></div>
 <?php if (!$rows): ?><div class="empty"><h2>No <?= escape(strtolower($definition['title'])) ?> found</h2><p><?= $q !== '' || $filter !== '' ? 'Try a different search or clear your filters.' : 'Records will appear here when they are added.' ?></p><?php if (canCreate($entity, $user)): ?><a href="<?= escape($entity) ?>.php?action=create">Add your first <?= escape($definition['singular']) ?> →</a><?php endif; ?></div>
 <?php else: ?><div class="table-scroll" role="region" aria-label="<?= escape($definition['title']) ?> records" tabindex="0"><table><thead><tr><th scope="col">ID</th><?php if (isset($definition['fields']['image_path'])): ?><th scope="col">Photo</th><?php endif; ?><?php foreach ($definition['columns'] as $key): ?><th scope="col"><?= escape($fields[$key]['label'] ?? $definition['fields'][$key]['label']) ?></th><?php endforeach; ?><th scope="col">Actions</th></tr></thead><tbody>
-<?php foreach ($rows as $row): ?><tr><td>#<?= (int) $row['id'] ?></td><?php if (isset($definition['fields']['image_path'])): ?><td><?php if ($photo = localPhoto($row['image_path'] ?? null)): ?><img class="record-thumb" src="<?= escape($photo) ?>" alt="<?= escape($row['park_name'] ?? $row['facility_name'] ?? 'Photo') ?>" width="96" height="64" loading="lazy"><?php else: ?>—<?php endif; ?></td><?php endif; ?><?php foreach ($definition['columns'] as $key): $field = $definition['fields'][$key]; ?><td><?php if ($field['type'] === 'select'): ?><span class="tag <?= escape((string) $row[$key]) ?>"><?= escape(displayValue($row, $key, $field)) ?></span><?php else: ?><?= escape(displayValue($row, $key, $field)) ?><?php endif; ?></td><?php endforeach; ?><td class="row-actions"><a href="<?= escape($entity) ?>.php?action=view&amp;id=<?= (int) $row['id'] ?>">View</a><?php if (canManage($entity, $user)): ?><a href="<?= escape($entity) ?>.php?action=edit&amp;id=<?= (int) $row['id'] ?>">Edit</a><?php endif; ?></td></tr><?php endforeach; ?>
+<?php foreach ($rows as $row): ?><tr><td>#<?= (int) $row['id'] ?></td><?php if (isset($definition['fields']['image_path'])): ?><td><?php if ($photo = localPhoto($row['image_path'] ?? null)): ?><img class="record-thumb" src="<?= escape($photo) ?>" alt="<?= escape($row['park_name'] ?? $row['facility_name'] ?? $row['item_name'] ?? 'Photo') ?>" width="96" height="64" loading="lazy"><?php else: ?>—<?php endif; ?></td><?php endif; ?><?php foreach ($definition['columns'] as $key): $field = $definition['fields'][$key]; ?><td><?php if ($field['type'] === 'select'): ?><span class="tag <?= escape((string) $row[$key]) ?>"><?= escape(displayValue($row, $key, $field)) ?></span><?php else: ?><?= escape(displayValue($row, $key, $field)) ?><?php endif; ?></td><?php endforeach; ?><td class="row-actions"><a href="<?= escape($entity) ?>.php?action=view&amp;id=<?= (int) $row['id'] ?>">View</a><?php if (canManage($entity, $user)): ?><a href="<?= escape($entity) ?>.php?action=edit&amp;id=<?= (int) $row['id'] ?>">Edit</a><?php endif; ?></td></tr><?php endforeach; ?>
 </tbody></table></div><?php endif; ?>
 <div class="pagination"><span>Page <?= $page ?> of <?= $pages ?></span><div><?php if ($page > 1): ?><a href="?<?= escape(http_build_query(['q' => $q, 'status' => $filter, 'page' => $page - 1])) ?>">← Previous</a><?php endif; ?><?php if ($page < $pages): ?><a href="?<?= escape(http_build_query(['q' => $q, 'status' => $filter, 'page' => $page + 1])) ?>">Next →</a><?php endif; ?></div></div></section>
 <?php
@@ -134,6 +136,8 @@ if ($action === 'list') {
 <form method="post" class="record-form"><input type="hidden" name="csrf" value="<?= escape(csrfToken()) ?>"><div class="form-grid">
 <?php foreach ($fields as $key => $field):
     $value = $_SERVER['REQUEST_METHOD'] === 'POST' ? postValue($key) : ($record[$key] ?? $field['default'] ?? '');
+    if ($entity === 'bookings' && $action === 'create' && $key === 'facility_id' && $_SERVER['REQUEST_METHOD'] !== 'POST') { $value = filter_var($_GET['facility_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: ''; }
+    if ($entity === 'bookings' && $action === 'create' && $_SERVER['REQUEST_METHOD'] !== 'POST' && in_array($key, ['booking_date', 'start_time', 'end_time', 'number_of_people'], true) && is_string($_GET[$key] ?? null)) { $value = substr($_GET[$key], 0, 30); }
     if ($field['type'] === 'password') { $value = ''; }
     if ($field['type'] === 'time') { $value = substr((string) $value, 0, 5); }
     if ($field['type'] === 'datetime-local') { $value = substr(str_replace(' ', 'T', (string) $value), 0, 16); }
@@ -172,8 +176,9 @@ if ($action === 'list') {
     ?>
 <section><div class="detail-heading"><h2><?= escape(ucfirst($definition['singular'])) ?> #<?= $id ?></h2><?php if ($action === 'view' && canManage($entity, $user)): ?><div class="row-actions"><a class="button" href="?action=edit&amp;id=<?= $id ?>">Edit</a><a class="button danger-outline" href="?action=delete&amp;id=<?= $id ?>">Delete</a></div><?php endif; ?></div>
 <?php if ($action === 'delete' || $action === 'cancel'): ?><p><?= $action === 'delete' ? 'Delete this record permanently? Records with linked bookings, facilities, maintenance, or payments must be resolved first.' : 'Cancel this booking? Any existing payment will remain recorded; cancellation does not issue a refund.' ?></p><form method="post"><input type="hidden" name="csrf" value="<?= escape(csrfToken()) ?>"><div class="form-actions"><button class="danger" type="submit">Confirm <?= $action === 'delete' ? 'delete' : 'cancellation' ?></button><a href="?action=view&amp;id=<?= $id ?>">Keep record</a></div></form><?php endif; ?>
-<?php if ($photo = localPhoto($record['image_path'] ?? null)): ?><img class="record-photo" src="<?= escape($photo) ?>" alt="<?= escape($record['park_name'] ?? $record['facility_name'] ?? 'Photo') ?>" width="1200" height="800"><?php endif; ?>
+<?php if ($photo = localPhoto($record['image_path'] ?? null)): ?><img class="record-photo" src="<?= escape($photo) ?>" alt="<?= escape($record['park_name'] ?? $record['facility_name'] ?? $record['item_name'] ?? 'Photo') ?>" width="1200" height="800"><?php endif; ?>
 <dl class="record-details"><?php foreach ($definition['fields'] as $key => $field): if ($key === 'password') { continue; } ?><div><dt><?= escape($field['label']) ?></dt><dd><?= nl2br(escape(displayValue($record, $key, $field))) ?></dd></div><?php endforeach; ?><?php if (!isset($definition['fields']['created_at'])): ?><div><dt>Created at</dt><dd><?= escape((string) $record['created_at']) ?></dd></div><?php endif; ?></dl>
+<?php if ($action === 'view' && $table === 'facilities' && $record['status'] === 'available'): ?><a class="button" href="bookings.php?action=create&amp;facility_id=<?= $id ?>">Book <?= ($record['kind'] ?? '') === 'table' ? 'this table' : 'this facility' ?></a><?php endif; ?>
 <?php if ($action === 'view' && $entity === 'bookings' && $user['role'] === 'customer' && in_array($record['status'], ['pending', 'approved'], true)): ?><a class="button danger-outline" href="?action=cancel&amp;id=<?= $id ?>">Cancel booking</a><?php endif; ?>
 </section>
 <?php

@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newUserId = (int) $db->lastInsertId();
                 recordAuthenticationActivity($newUserId, 'Registered an account');
                 signIn(['id' => $newUserId]);
-                redirectTo('dashboard.php');
+                redirectTo(afterLoginDestination());
             } else {
                 $statement = $db->prepare('SELECT id, password, status FROM users WHERE email = ?');
                 $statement->execute([$email]);
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     recordAuthenticationActivity((int) $user['id'], 'Logged in');
                     signIn($user);
-                    redirectTo('dashboard.php');
+                    redirectTo(afterLoginDestination());
                 }
                 $error = 'Email or password is incorrect.';
             }

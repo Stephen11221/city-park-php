@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS `parks` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `facilities` (
+  `kind` enum('facility','table') NOT NULL DEFAULT 'facility',
   `demo_key` varchar(80) DEFAULT NULL,
   `image_path` varchar(255) DEFAULT NULL,
   UNIQUE KEY `facilities_demo_key_unique` (`demo_key`),
@@ -121,3 +122,16 @@ CREATE TABLE IF NOT EXISTS `activity_logs` (
   CONSTRAINT `fk_activity_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+
+CREATE TABLE IF NOT EXISTS menu_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  item_name VARCHAR(150) NOT NULL,
+  category ENUM('meals','snacks','drinks','desserts') NOT NULL DEFAULT 'meals',
+  description TEXT NULL,
+  price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  image_path VARCHAR(255) NULL,
+  status ENUM('available','unavailable') NOT NULL DEFAULT 'available',
+  demo_key VARCHAR(80) NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -11,7 +11,7 @@ function entities(): array
     $ref = static function (string $label, string $table, string $column, bool $required = true) use ($field): array {
         return $field($label, 'reference', $required, ['table' => $table, 'column' => $column]);
     };
-    return [
+    $definitions = [
         'parks' => ['title' => 'Parks', 'singular' => 'park', 'description' => 'Manage park locations, opening hours, and availability.', 'columns' => ['park_name', 'location', 'opening_time', 'closing_time', 'status'], 'fields' => [
             'park_name' => $field('Park name', 'text', true, ['max' => 150]),
             'image_path' => $field('Photo path', 'image', false, ['max' => 255]),
@@ -24,6 +24,7 @@ function entities(): array
         'facilities' => ['title' => 'Facilities', 'singular' => 'facility', 'description' => 'Spaces and amenities available within each park.', 'columns' => ['facility_name', 'park_id', 'capacity', 'price', 'status'], 'fields' => [
             'park_id' => $ref('Park', 'parks', 'park_name'),
             'facility_name' => $field('Facility name', 'text', true, ['max' => 150]),
+            'kind' => $select('Type', ['facility', 'table'], 'facility'),
             'image_path' => $field('Photo path', 'image', false, ['max' => 255]),
             'description' => $field('Description', 'textarea', false),
             'capacity' => $field('Capacity', 'integer', true, ['min' => 0, 'default' => '0']),
@@ -74,4 +75,33 @@ function entities(): array
             'created_at' => $field('Created at'),
         ]],
     ];
+    $definitions['menu_items'] = ['title' => 'Menu items', 'singular' => 'menu item', 'description' => 'Manage food and drinks shown on the public menu.', 'columns' => ['item_name', 'category', 'price', 'status'], 'fields' => [
+        'item_name' => $field('Item name', 'text', true, ['max' => 150]),
+        'category' => $select('Category', ['meals', 'snacks', 'drinks', 'desserts'], 'meals'),
+        'description' => $field('Description', 'textarea', false),
+        'price' => $field('Price', 'money'),
+        'image_path' => $field('Photo path', 'image', false, ['max' => 255]),
+        'status' => $select('Status', ['available', 'unavailable'], 'available'),
+    ]];
+    $definitions['staff'] = $definitions['users'];
+    $definitions['staff']['table'] = 'users';
+    $definitions['staff']['title'] = 'Staff';
+    $definitions['staff']['singular'] = 'staff member';
+    $definitions['staff']['description'] = 'Create staff accounts and manage their contact details and access.';
+    $definitions['staff']['fixed'] = ['role' => 'staff'];
+    unset($definitions['staff']['fields']['role']);
+    $definitions['staff']['columns'] = ['full_name', 'email', 'phone', 'status'];
+    $definitions['dining_tables'] = $definitions['facilities'];
+    $definitions['dining_tables']['table'] = 'facilities';
+    $definitions['dining_tables']['title'] = 'Tables';
+    $definitions['dining_tables']['singular'] = 'table';
+    $definitions['dining_tables']['description'] = 'Manage individual tables, seating capacity, reservation fees, and availability.';
+    $definitions['dining_tables']['fixed'] = ['kind' => 'table'];
+    unset($definitions['dining_tables']['fields']['kind']);
+    $definitions['dining_tables']['fields']['facility_name']['label'] = 'Table name / number';
+    $definitions['dining_tables']['fields']['capacity']['label'] = 'Seats';
+    $definitions['dining_tables']['fields']['capacity']['min'] = 1;
+    $definitions['dining_tables']['fields']['capacity']['default'] = '4';
+    $definitions['dining_tables']['fields']['price']['label'] = 'Reservation fee';
+    return $definitions;
 }

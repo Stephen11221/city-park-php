@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
-require_once __DIR__ . '/includes/images.php';
+require_once __DIR__ . '/includes/public.php';
 $user = null;
 $parks = [];
 $facilities = [];
@@ -26,11 +26,7 @@ $accountLink = $user ? 'dashboard.php' : 'register.php';
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header class="site-header wrap">
-<a class="brand" href="index.php" aria-label="City Park home"><span class="brand-mark">CP</span>City Park</a>
-<nav aria-label="Main navigation"><a href="#parks">Our parks</a><a href="#how-it-works">Plan a visit</a>
-<?php if ($user): ?><a class="button small" href="dashboard.php">Dashboard →</a><?php else: ?><a href="login.php">Log in</a><a class="button small" href="register.php">Get started →</a><?php endif; ?>
-</nav></header>
+<?php publicHeader($user, 'home'); ?>
 <main id="main">
 <section class="hero wrap">
 <div class="hero-copy"><span class="eyebrow">A LITTLE MORE GREEN. A LITTLE MORE LIFE.</span><h1>Make room for<br>the <em>outdoors.</em></h1><p>Space to play, a place to gather, and a moment to slow down. Find your next visit at City Park.</p><div class="actions"><a class="button" href="#parks">Explore our parks <span aria-hidden="true">↗</span></a><a class="text-link" href="<?= escape($accountLink) ?>"><?= $user ? 'Open your dashboard' : 'Create an account' ?> →</a></div><div class="hero-note"><span aria-hidden="true">✳</span> Your next good day starts outside.</div></div>

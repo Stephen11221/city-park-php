@@ -121,3 +121,4 @@ a { color: #5143bd; font-weight: 650; }
 }
 .management .record-thumb{display:block;width:96px;height:64px;object-fit:cover;border-radius:7px}
 .management .record-photo{display:block;width:100%;max-width:850px;height:auto;max-height:440px;object-fit:cover;border-radius:12px;margin-top:25px}
+@media(min-width:701px){.management .sidebar nav{overflow-y:auto;min-height:0;margin-top:24px}.management .sidebar .brand,.management .sidebar .account{flex-shrink:0}.management .sidebar .account{padding-top:16px}}
