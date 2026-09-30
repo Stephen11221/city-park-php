@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/payroll.php';
 
 function validateFields(array $fields, bool $editing): array
 {
@@ -66,6 +67,12 @@ function validateFields(array $fields, bool $editing): array
 function validateRecord(string $entity, array &$values, int $id, array $user): array
 {
     $errors = [];
+    if ($entity === 'staff_payments') { return validatePayroll($values, $id); }
+    if ($entity === 'users' && isset($values['hired_on']) && $values['hired_on'] > date('Y-m-d')) { $errors[] = 'Hire date cannot be in the future.'; }
+    if ($entity === 'users' && $id && $values['role'] === 'staff' && $values['status'] === 'active') {
+        $employment = query('SELECT employment_status FROM users WHERE id = ?', [$id])->fetchColumn();
+        if ($employment === 'dismissed') { $errors[] = 'Use Rehire staff to restore a dismissed employee’s access.'; }
+    }
     if ($entity === 'users' && $id === (int) $user['id'] && ($values['role'] !== 'admin' || $values['status'] !== 'active')) {
         $errors[] = 'Keep your own administrator account active with the admin role.';
     }
@@ -114,10 +121,11 @@ function assertDeletable(string $entity, int $id, array $user): void
     if ($entity === 'users' && $id === (int) $user['id']) { throw new DomainException('You cannot delete your own account.'); }
     // Avoid cascading removal of related operational and financial records.
     $references = [
-        'users' => [['bookings', 'user_id']],
+        'users' => [['bookings', 'user_id'], ['staff_payments', 'staff_id'], ['sales', 'cashier_id'], ['sales', 'waiter_id'], ['sales', 'refunded_by'], ['cashier_audit', 'actor_id'], ['table_assignments', 'waiter_id'], ['table_assignments', 'assigned_by']],
         'parks' => [['facilities', 'park_id']],
-        'facilities' => [['bookings', 'facility_id'], ['maintenance', 'facility_id']],
+        'facilities' => [['bookings', 'facility_id'], ['maintenance', 'facility_id'], ['sales', 'facility_id']],
         'bookings' => [['payments', 'booking_id']],
+        'suppliers' => [['expenses', 'supplier_id']],
     ];
     foreach ($references[$entity] ?? [] as [$table, $column]) {
         if (query("SELECT id FROM `{$table}` WHERE `{$column}` = ? LIMIT 1 FOR UPDATE", [$id])->fetchColumn()) {

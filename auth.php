@@ -55,7 +55,7 @@ function currentUser(): ?array
     if (!isset($_SESSION['user_id'])) {
         return null;
     }
-    $statement = database()->prepare('SELECT id, full_name, email, role, status FROM users WHERE id = ? AND status = \'active\'');
+    $statement = database()->prepare('SELECT id, full_name, email, role, status FROM users WHERE id = ? AND status = \'active\' AND (role <> \'staff\' OR employment_status = \'employed\')');
     $statement->execute([$_SESSION['user_id']]);
     $user = $statement->fetch();
     if (!$user) {
@@ -96,5 +96,6 @@ function afterLoginDestination(): string
         $intent = array_intersect_key($intent, array_flip(['facility_id', 'booking_date', 'start_time', 'end_time', 'number_of_people']));
         return 'bookings.php?' . http_build_query(array_merge(['action' => 'create'], $intent));
     }
-    return 'dashboard.php';
+    $signedIn = currentUser();
+    return $signedIn && $signedIn['role'] === 'cashier' ? 'cashier.php' : 'dashboard.php';
 }

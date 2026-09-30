@@ -36,12 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 signIn(['id' => $newUserId]);
                 redirectTo(afterLoginDestination());
             } else {
-                $statement = $db->prepare('SELECT id, password, status FROM users WHERE email = ?');
+                $statement = $db->prepare('SELECT id, password, status, role, employment_status FROM users WHERE email = ?');
                 $statement->execute([$email]);
                 $user = $statement->fetch();
                 // Use a dummy hash to keep missing-account checks comparable in cost.
                 $hash = $user ? $user['password'] : '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
-                if (password_verify($password, $hash) && $user && $user['status'] === 'active') {
+                if (password_verify($password, $hash) && $user && $user['status'] === 'active' && ($user['role'] !== 'staff' || $user['employment_status'] === 'employed')) {
                     if (password_needs_rehash($hash, PASSWORD_DEFAULT)) {
                         $update = $db->prepare('UPDATE users SET password = ? WHERE id = ?');
                         $update->execute([password_hash($password, PASSWORD_DEFAULT), $user['id']]);
@@ -82,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <span class="eyebrow">WELCOME TO CITY PARK</span>
 <h1><?= escape($title) ?></h1>
 <p><?= $isRegister ? 'Create an account to book facilities and manage your visits.' : 'Log in to access your City Park account.' ?></p>
+<?php if (!$isRegister): ?><p class="hint">Staff can sign in here using the email and password provided by their administrator.</p><?php endif; ?>
 <?php if ($error !== ''): ?>
 <p class="error" role="alert"><?= escape($error) ?></p>
 <?php endif; ?>

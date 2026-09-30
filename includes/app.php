@@ -34,7 +34,7 @@ function requireUser(): array
 
 function canView(string $entity, array $user): bool
 {
-    if ($entity === 'users' || $entity === 'staff' || $entity === 'activity_logs') {
+    if ($entity === 'users' || $entity === 'staff' || $entity === 'activity_logs' || $entity === 'staff_payments' || $entity === 'suppliers' || $entity === 'expenses') {
         return $user['role'] === 'admin';
     }
     if ($entity === 'maintenance') {
@@ -82,6 +82,12 @@ function layoutStart(string $title, array $user, string $active = ''): void
 <body class="management"><div class="app-shell">
 <aside class="sidebar"><a class="brand" href="dashboard.php"><span class="logo">CP</span><span>City Park<small>Management</small></span></a>
 <nav aria-label="Main navigation"><a href="index.php">Public homepage</a><a href="dashboard.php" <?= $active === '' ? 'aria-current="page"' : '' ?>>Dashboard</a>
+<?php if (in_array($user['role'], ['admin', 'cashier'], true)): ?>
+<a href="cashier.php" <?= $active === 'cashier' ? 'aria-current="page"' : '' ?>>Cashier / POS</a>
+<a href="sales.php" <?= $active === 'sales' ? 'aria-current="page"' : '' ?>>Sales &amp; receipts</a>
+<a href="accounting.php" <?= $active === 'accounting' ? 'aria-current="page"' : '' ?>>Accounting</a>
+<a href="cashier-audit.php" <?= $active === 'cashier-audit' ? 'aria-current="page"' : '' ?>>Cashier audit</a>
+<?php endif; ?>
 <?php foreach ($definitions as $key => $definition): if (!canView($key, $user)) { continue; } ?>
 <a href="<?= escape($key) ?>.php" <?= $active === $key ? 'aria-current="page"' : '' ?>><?= escape($definition['title']) ?></a>
 <?php endforeach; ?></nav><div class="account"><strong><?= escape($user['full_name']) ?></strong><small><?= escape(readable((string) $user['role'])) ?></small>
@@ -117,6 +123,7 @@ function entitySelect(string $entity, array $definition): array
     // Never load password hashes for the list or detail views.
     if ($entity === 'users' || $entity === 'staff') {
         $select = 't.id, t.full_name, t.email, t.phone, t.role, t.status, t.created_at, t.updated_at';
+        if ($entity === 'staff') { $select .= ', t.job_title, t.hired_on, t.terminated_on, t.termination_reason, t.employment_status, t.daily_rate, t.monthly_rate'; }
     }
     return [$select, $joins];
 }

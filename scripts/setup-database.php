@@ -28,6 +28,10 @@ try {
     migrateDemoData();
     require_once __DIR__ . '/migrate-dining.php';
     migrateDining();
+    require_once __DIR__ . '/migrate-staff-payroll.php';
+    migrateStaffPayroll();
+    require_once __DIR__ . '/migrate-cashier.php';
+    migrateCashier();
     echo "City park database and tables are ready.\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, "Setup failed. Check database configuration and CREATE privileges.\n");
